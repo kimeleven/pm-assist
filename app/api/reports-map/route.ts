@@ -6,6 +6,15 @@ export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
+  // GRACE 자동 전환
+  await prisma.report.updateMany({
+    where: {
+      status: "RECEIVED",
+      gracePeriodEnd: { lt: new Date() },
+    },
+    data: { status: "GRACE" },
+  }).catch(() => {});
+
   const where: Record<string, unknown> = {
     status: { in: ["RECEIVED", "GRACE"] },
   };

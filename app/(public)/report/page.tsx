@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { VIOLATION_TYPES } from "@/lib/utils";
+
+const QrScanner = dynamic(() => import("@/components/QrScanner"), { ssr: false });
 
 type Step = "phone" | "qr" | "location" | "photo" | "info" | "done";
 
@@ -17,6 +20,7 @@ export default function ReportPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [qrResult, setQrResult] = useState("");
+  const [qrScanning, setQrScanning] = useState(true);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationAddr, setLocationAddr] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
@@ -38,6 +42,24 @@ export default function ReportPage() {
     const idx = order.indexOf(current);
     if (idx < order.length - 1) setStep(order[idx + 1]);
   }
+
+  const handleQrSuccess = useCallback(async (text: string) => {
+    setQrResult(text);
+    setQrScanning(false);
+    // QR 코드로 업체 자동 식별
+    try {
+      const res = await fetch(`/api/devices?qrCode=${encodeURIComponent(text)}`);
+      if (res.ok) {
+        const device = await res.json();
+        if (device?.company?.id) {
+          setSelectedCompanyId(device.company.id);
+        }
+      }
+    } catch {
+      // 업체 식별 실패해도 수동 선택으로 계속
+    }
+    nextStep("qr");
+  }, []);
 
   async function getLocation() {
     setError("");
@@ -175,17 +197,17 @@ export default function ReportPage() {
               <p className="text-sm text-gray-500">
                 킥보드의 QR코드를 스캔하면 업체가 자동으로 식별됩니다.
               </p>
-              <div className="bg-gray-100 rounded-lg p-4 text-center text-sm text-gray-500">
-                📷 QR스캔 기능은 Kakao Maps API 키 설정 후 활성화됩니다.
-                <br />
-                아래에서 업체를 직접 선택해 주세요.
-              </div>
-              <button
-                onClick={() => nextStep("qr")}
-                className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-blue-700"
-              >
-                다음 (QR 스킵)
-              </button>
+              {qrScanning ? (
+                <QrScanner
+                  onSuccess={handleQrSuccess}
+                  onCancel={() => { setQrScanning(false); nextStep("qr"); }}
+                />
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
+                  ✅ QR 스캔 완료: <span className="font-mono">{qrResult}</span>
+                  {selectedCompanyId && <p className="text-xs mt-1 text-green-600">업체가 자동으로 식별되었습니다.</p>}
+                </div>
+              )}
             </div>
           )}
 

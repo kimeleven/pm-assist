@@ -11,12 +11,17 @@ interface Report {
   reportedAt: string;
   gracePeriodEnd: string;
   locationAddr?: string;
+  actionResult?: string;
+  actionAt?: string;
 }
 
 type ActionResult = "FIXED" | "NOT_FOUND";
+type Tab = "pending" | "done";
 
 export default function CompanyReportsPage() {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [tab, setTab] = useState<Tab>("pending");
+  const [pendingReports, setPendingReports] = useState<Report[]>([]);
+  const [doneReports, setDoneReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Report | null>(null);
   const [actionResult, setActionResult] = useState<ActionResult>("FIXED");
@@ -27,9 +32,14 @@ export default function CompanyReportsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/reports?status=RECEIVED")
-      .then((r) => r.json())
-      .then((d) => { setReports(Array.isArray(d) ? d : []); setLoading(false); });
+    Promise.all([
+      fetch("/api/reports?status=RECEIVED").then((r) => r.json()),
+      fetch("/api/reports?status=FIXED").then((r) => r.json()),
+    ]).then(([pending, done]) => {
+      setPendingReports(Array.isArray(pending) ? pending : []);
+      setDoneReports(Array.isArray(done) ? done : []);
+      setLoading(false);
+    });
   }, []);
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -59,7 +69,7 @@ export default function CompanyReportsPage() {
     setSubmitting(false);
     if (res.ok) {
       setMessage("✅ 조치결과가 등록되었습니다. 신고자에게 알림이 발송됩니다.");
-      setReports((prev) => prev.filter((r) => r.id !== selected.id));
+      setPendingReports((prev) => prev.filter((r) => r.id !== selected.id));
       setSelected(null);
       setActionPhotoUrl("");
       setActionNote("");
@@ -68,9 +78,26 @@ export default function CompanyReportsPage() {
     }
   }
 
+  const reports = tab === "pending" ? pendingReports : doneReports;
+
   return (
     <div className="p-6">
-      <h1 className="text-xl font-bold text-gray-800 mb-6">조치결과 등록</h1>
+      <h1 className="text-xl font-bold text-gray-800 mb-4">조치결과 등록</h1>
+
+      {/* 탭 */}
+      <div className="flex gap-2 mb-6">
+        {([["pending", `처리 대기 (${pendingReports.length})`], ["done", `처리 완료 (${doneReports.length})`]] as [Tab, string][]).map(([t, label]) => (
+          <button
+            key={t}
+            onClick={() => { setTab(t); setSelected(null); }}
+            className={`px-4 py-2 text-sm rounded-full border font-medium transition-colors ${
+              tab === t ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-600 hover:border-blue-400"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {message && (
         <div className="mb-4 p-3 rounded-lg bg-blue-50 text-sm text-blue-700 border border-blue-200">
@@ -82,12 +109,16 @@ export default function CompanyReportsPage() {
         {/* 신고 목록 */}
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="px-4 py-3 border-b bg-gray-50">
-            <h2 className="font-semibold text-sm text-gray-700">처리 대기 신고</h2>
+            <h2 className="font-semibold text-sm text-gray-700">
+              {tab === "pending" ? "처리 대기 신고" : "처리 완료 신고"}
+            </h2>
           </div>
           {loading ? (
             <div className="text-center text-gray-400 py-8 text-sm">로딩 중...</div>
           ) : reports.length === 0 ? (
-            <div className="text-center text-gray-400 py-8 text-sm">처리 대기 신고가 없습니다.</div>
+            <div className="text-center text-gray-400 py-8 text-sm">
+              {tab === "pending" ? "처리 대기 신고가 없습니다." : "처리 완료 내역이 없습니다."}
+            </div>
           ) : (
             <div className="divide-y">
               {reports.map((r) => (
@@ -105,19 +136,40 @@ export default function CompanyReportsPage() {
                   <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[r.status]}`}>
                     {STATUS_LABELS[r.status]}
                   </span>
+                  {r.actionAt && (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      처리: {new Date(r.actionAt).toLocaleString("ko-KR")}
+                    </p>
+                  )}
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* 처리 폼 */}
+        {/* 처리 폼 또는 상세 */}
         <div className="bg-white rounded-xl shadow p-5">
           {!selected ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               왼쪽 목록에서 신고를 선택하세요.
             </div>
+          ) : tab === "done" ? (
+            // 처리 완료 상세 보기
+            <div className="space-y-3">
+              <h2 className="font-semibold text-gray-800">처리 완료 상세</h2>
+              <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-2">
+                <p className="text-gray-600">위반유형: <strong>{selected.violationType}</strong></p>
+                <p className="text-gray-400 text-xs">신고: {new Date(selected.reportedAt).toLocaleString("ko-KR")}</p>
+                {selected.actionAt && (
+                  <p className="text-gray-500 text-xs">처리: {new Date(selected.actionAt).toLocaleString("ko-KR")}</p>
+                )}
+                {selected.actionResult && (
+                  <p className="text-gray-600">결과: <strong>{selected.actionResult === "FIXED" ? "✅ 정비완료" : "🔍 기기미발견"}</strong></p>
+                )}
+              </div>
+            </div>
           ) : (
+            // 처리 폼
             <form onSubmit={handleSubmit} className="space-y-4">
               <h2 className="font-semibold text-gray-800">조치결과 등록</h2>
               <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">

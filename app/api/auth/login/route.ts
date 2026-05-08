@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "아이디 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
   }
 
-  const token = signToken({
+  const token = await signToken({
     userId: user.id,
     username: user.username,
     role: user.role,
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     { role: user.role, redirectTo, company: user.company },
     {
       status: 200,
-      headers: { "Set-Cookie": setCookieHeader(token) },
+      headers: { "Set-Cookie": await setCookieHeader(token) },
     }
   );
 }

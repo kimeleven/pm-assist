@@ -3,12 +3,10 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-  const session = await getSession();
-  if (!session || session.role !== "ADMIN") return NextResponse.json({ error: "권한 없음" }, { status: 403 });
-
   const { searchParams } = new URL(req.url);
   const qrCode = searchParams.get("qrCode");
 
+  // QR 코드 단건 조회는 인증 없이 허용 (시민 신고 시 업체 식별용)
   if (qrCode) {
     const device = await prisma.device.findUnique({
       where: { qrCode },
@@ -16,6 +14,10 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(device);
   }
+
+  // 전체 목록은 ADMIN만
+  const session = await getSession();
+  if (!session || session.role !== "ADMIN") return NextResponse.json({ error: "권한 없음" }, { status: 403 });
 
   const devices = await prisma.device.findMany({
     include: { company: { select: { name: true } } },

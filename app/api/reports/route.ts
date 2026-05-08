@@ -6,10 +6,23 @@ import { ReportStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const phone = searchParams.get("phone");
+
+  // 인증 없이 phone 기반 조회는 허용 (시민 나의 신고 조회)
+  if (!session && !phone) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
+
+  // GRACE 자동 전환: gracePeriodEnd 지난 RECEIVED 건을 GRACE로 일괄 처리
+  if (session) {
+    await prisma.report.updateMany({
+      where: {
+        status: ReportStatus.RECEIVED,
+        gracePeriodEnd: { lt: new Date() },
+      },
+      data: { status: ReportStatus.GRACE },
+    }).catch(() => {});
+  }
   const status = searchParams.get("status") as ReportStatus | null;
   const companyId = searchParams.get("companyId");
   const from = searchParams.get("from");

@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { jwtVerify } from "jose";
 
-export function middleware(request: NextRequest) {
+function getSecret() {
+  return new TextEncoder().encode(process.env.JWT_SECRET!);
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const token = request.cookies.get("pm_token")?.value;
-  const payload = token ? verifyToken(token) : null;
+  let payload: { role?: string } | null = null;
+
+  if (token) {
+    try {
+      const { payload: p } = await jwtVerify(token, getSecret());
+      payload = p as { role?: string };
+    } catch {
+      payload = null;
+    }
+  }
 
   if (pathname.startsWith("/admin")) {
     if (!payload || payload.role !== "ADMIN") {

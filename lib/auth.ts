@@ -1,9 +1,12 @@
-import jwt from "jsonwebtoken";
+import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { Role } from "@prisma/client";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
 const COOKIE_NAME = "pm_token";
+
+function getSecret() {
+  return new TextEncoder().encode(process.env.JWT_SECRET!);
+}
 
 export interface JwtPayload {
   userId: string;
@@ -12,13 +15,17 @@ export interface JwtPayload {
   companyId?: string | null;
 }
 
-export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
+export async function signToken(payload: JwtPayload): Promise<string> {
+  return new SignJWT(payload as unknown as Record<string, unknown>)
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("24h")
+    .sign(getSecret());
 }
 
-export function verifyToken(token: string): JwtPayload | null {
+export async function verifyToken(token: string): Promise<JwtPayload | null> {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const { payload } = await jwtVerify(token, getSecret());
+    return payload as unknown as JwtPayload;
   } catch {
     return null;
   }
@@ -31,7 +38,7 @@ export async function getSession(): Promise<JwtPayload | null> {
   return verifyToken(token);
 }
 
-export function setCookieHeader(token: string) {
+export async function setCookieHeader(token: string) {
   return `${COOKIE_NAME}=${token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax${
     process.env.NODE_ENV === "production" ? "; Secure" : ""
   }`;
