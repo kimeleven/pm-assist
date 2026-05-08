@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  COMPANY
+}
+
+enum ReportStatus {
+  RECEIVED
+  GRACE
+  FIXED
+  TOWED
+  NOT_FOUND
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         Role
+  company      Company? @relation(fields: [companyId], references: [id])
+  companyId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String
+  address   String?
+  status    String   @default("active")
+  users     User[]
+  devices   Device[]
+  reports   Report[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  qrCode    String   @unique
+  company   Company  @relation(fields: [companyId], references: [id])
+  companyId String
+  model     String
+  status    String   @default("active")
+  reports   Report[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterPhone  String
+  device         Device?      @relation(fields: [deviceId], references: [id])
+  deviceId       String?
+  company        Company      @relation(fields: [companyId], references: [id])
+  companyId      String
+  violationType  String
+  locationLat    Float
+  locationLng    Float
+  locationAddr   String?
+  photoUrl       String
+  status         ReportStatus @default(RECEIVED)
+  gracePeriodEnd DateTime
+  reportedAt     DateTime     @default(now())
+  actionPhotoUrl String?
+  actionResult   String?
+  actionNote     String?
+  actionAt       DateTime?
+  actionUserId   String?
+  updatedAt      DateTime     @updatedAt
+}
