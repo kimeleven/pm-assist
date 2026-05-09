@@ -39,6 +39,8 @@ export async function GET(req: NextRequest) {
   }
 
   // 관리자: 전체 / PM업체: 자사만
+  // (위 phone 분기에서 return하지 않았으면 session은 보장됨)
+  if (!session) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
   const where: Record<string, unknown> = {};
   if (session.role === "COMPANY") where.companyId = session.companyId;
   if (companyId && session.role === "ADMIN") where.companyId = companyId;
