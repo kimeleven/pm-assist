@@ -17,6 +17,25 @@ export default function AdminCompaniesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", contact: "", address: "" });
   const [saving, setSaving] = useState(false);
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  async function handleToggleStatus(companyId: string, currentStatus: string) {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    const label = newStatus === "inactive" ? "비활성화" : "활성화";
+    if (!confirm(`해당 업체를 ${label}하시겠습니까?`)) return;
+    setToggling(companyId);
+    const res = await fetch(`/api/companies/${companyId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (res.ok) {
+      setCompanies((prev) =>
+        prev.map((c) => (c.id === companyId ? { ...c, status: newStatus } : c))
+      );
+    }
+    setToggling(null);
+  }
 
   useEffect(() => {
     fetch("/api/companies")
@@ -116,6 +135,7 @@ export default function AdminCompaniesPage() {
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">기기</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">신고</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">상태</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600">관리</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -132,6 +152,19 @@ export default function AdminCompaniesPage() {
                     }`}>
                       {c.status === "active" ? "운영중" : "비활성"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => handleToggleStatus(c.id, c.status)}
+                      disabled={toggling === c.id}
+                      className={`text-xs px-2 py-1 rounded-md font-medium disabled:opacity-50 ${
+                        c.status === "active"
+                          ? "text-orange-600 hover:bg-orange-50 border border-orange-200"
+                          : "text-green-600 hover:bg-green-50 border border-green-200"
+                      }`}
+                    >
+                      {toggling === c.id ? "처리중..." : c.status === "active" ? "비활성화" : "활성화"}
+                    </button>
                   </td>
                 </tr>
               ))}

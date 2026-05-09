@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { STATUS_LABELS, STATUS_COLORS } from "@/lib/utils";
 import { ReportStatus } from "@prisma/client";
 
@@ -101,6 +102,7 @@ export default function AdminReportsPage() {
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">기기</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">상태</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">신고자</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -131,6 +133,14 @@ export default function AdminReportsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{r.reporterPhone}</td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <Link
+                        href={`/admin/reports/${r.id}`}
+                        className="text-xs text-blue-500 hover:underline whitespace-nowrap"
+                      >
+                        상세 →
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

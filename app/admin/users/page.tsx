@@ -11,6 +11,11 @@ interface User {
   createdAt: string;
 }
 
+interface EditState {
+  userId: string;
+  password: string;
+}
+
 interface Company { id: string; name: string; }
 
 export default function AdminUsersPage() {
@@ -21,6 +26,8 @@ export default function AdminUsersPage() {
   const [form, setForm] = useState({ username: "", password: "", role: "ADMIN", companyId: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -46,6 +53,35 @@ export default function AdminUsersPage() {
       setShowForm(false);
     } else {
       setError(data.error ?? "생성 실패");
+    }
+  }
+
+  async function handleDelete(userId: string, username: string) {
+    if (!confirm(`"${username}" 계정을 삭제하시겠습니까?`)) return;
+    setDeleting(userId);
+    const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+    if (res.ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+    } else {
+      const d = await res.json();
+      alert(d.error ?? "삭제 실패");
+    }
+    setDeleting(null);
+  }
+
+  async function handlePasswordChange(userId: string, password: string) {
+    if (password.length < 6) { alert("비밀번호는 6자 이상이어야 합니다."); return; }
+    const res = await fetch(`/api/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    if (res.ok) {
+      alert("비밀번호가 변경됐습니다.");
+      setEditState(null);
+    } else {
+      const d = await res.json();
+      alert(d.error ?? "변경 실패");
     }
   }
 
@@ -106,20 +142,67 @@ export default function AdminUsersPage() {
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">역할</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">소속 업체</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">생성일</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600">관리</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono font-medium">{u.username}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.role === "ADMIN" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
-                      {roleLabel[u.role]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400">{u.company?.name ?? "-"}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{new Date(u.createdAt).toLocaleDateString("ko-KR")}</td>
-                </tr>
+                <>
+                  <tr key={u.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-mono font-medium">{u.username}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.role === "ADMIN" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
+                        {roleLabel[u.role]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400">{u.company?.name ?? "-"}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{new Date(u.createdAt).toLocaleDateString("ko-KR")}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditState(editState?.userId === u.id ? null : { userId: u.id, password: "" })}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          비번변경
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u.id, u.username)}
+                          disabled={deleting === u.id}
+                          className="text-xs text-red-500 hover:underline disabled:opacity-50"
+                        >
+                          {deleting === u.id ? "삭제중..." : "삭제"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {editState?.userId === u.id && (
+                    <tr key={`edit-${u.id}`}>
+                      <td colSpan={5} className="px-4 py-3 bg-blue-50">
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="password"
+                            value={editState.password}
+                            onChange={(e) => setEditState({ ...editState, password: e.target.value })}
+                            placeholder="새 비밀번호 (6자 이상)"
+                            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 flex-1"
+                          />
+                          <button
+                            onClick={() => handlePasswordChange(u.id, editState.password)}
+                            className="bg-blue-600 text-white text-sm rounded-lg px-3 py-1.5 hover:bg-blue-700"
+                          >
+                            변경
+                          </button>
+                          <button
+                            onClick={() => setEditState(null)}
+                            className="text-gray-400 text-sm hover:text-gray-600 px-2"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>
