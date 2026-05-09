@@ -5,13 +5,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* 페이지가 라이트 테마 전용이라 OS 다크모드 자동 전환 차단.
+   (다크 모드에서 흰색 글자 + 흰색 카드 → 안 보이는 문제 방지) */
+
+html {
+  color-scheme: light;
 }
 
 body {
