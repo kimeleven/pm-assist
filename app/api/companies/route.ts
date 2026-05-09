@@ -9,12 +9,22 @@ async function requireAdmin(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await requireAdmin(req);
-  if (!session) return NextResponse.json({ error: "권한 없음" }, { status: 403 });
+  const session = await getSession();
 
+  // ADMIN: 전체 정보 + counts (관리자 화면용)
+  if (session?.role === "ADMIN") {
+    const companies = await prisma.company.findMany({
+      include: { _count: { select: { users: true, devices: true, reports: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(companies);
+  }
+
+  // 비로그인/일반: id + name + status 만 (시민 신고 화면 드롭다운용)
   const companies = await prisma.company.findMany({
-    include: { _count: { select: { users: true, devices: true, reports: true } } },
-    orderBy: { createdAt: "desc" },
+    where: { status: "active" },
+    select: { id: true, name: true, status: true },
+    orderBy: { name: "asc" },
   });
   return NextResponse.json(companies);
 }
