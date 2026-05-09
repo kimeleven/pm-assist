@@ -83,7 +83,7 @@ export default function ReportDetailPage() {
   const isPending = report.status === "RECEIVED" || report.status === "GRACE";
   const gracePeriodEnd = new Date(report.gracePeriodEnd);
   const isGraceExpired = gracePeriodEnd < new Date();
-  const mapUrl = `https://map.kakao.com/link/map/${encodeURIComponent(report.locationAddr || "신고위치")},${report.locationLat},${report.locationLng}`;
+  const mapUrl = `https://www.google.com/maps?q=${report.locationLat},${report.locationLng}`;
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -175,9 +175,9 @@ export default function ReportDetailPage() {
                 href={mapUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full text-center bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold text-sm rounded-lg py-2 transition-colors"
+                className="block w-full text-center bg-blue-500 hover:bg-blue-600 text-white font-semibold text-sm rounded-lg py-2 transition-colors"
               >
-                카카오맵에서 보기 →
+                Google Maps에서 보기 →
               </a>
             </div>
           </div>
