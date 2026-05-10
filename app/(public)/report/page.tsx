@@ -8,6 +8,90 @@ const QrScanner = dynamic(() => import("@/components/QrScanner"), { ssr: false }
 
 type Step = "phone" | "qr" | "location" | "photo" | "info" | "done";
 
+function TermsModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <h3 className="font-bold text-gray-800 text-sm">개인정보 수집·이용 및 위치정보 제공 동의</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+        </div>
+        <div className="overflow-y-auto px-5 py-4 text-xs text-gray-600 space-y-5">
+          <section>
+            <h4 className="font-semibold text-gray-800 mb-2">1. 개인정보 수집·이용 동의</h4>
+            <table className="w-full border border-gray-200 rounded text-xs">
+              <tbody>
+                <tr className="border-b border-gray-200">
+                  <td className="bg-gray-50 px-2 py-1.5 font-medium w-24">수집 항목</td>
+                  <td className="px-2 py-1.5">휴대폰 번호, 신고 사진</td>
+                </tr>
+                <tr className="border-b border-gray-200">
+                  <td className="bg-gray-50 px-2 py-1.5 font-medium">수집 목적</td>
+                  <td className="px-2 py-1.5">무단방치 PM 신고 접수 및 처리결과 통보</td>
+                </tr>
+                <tr className="border-b border-gray-200">
+                  <td className="bg-gray-50 px-2 py-1.5 font-medium">보유 기간</td>
+                  <td className="px-2 py-1.5">신고 처리 완료 후 1년</td>
+                </tr>
+                <tr>
+                  <td className="bg-gray-50 px-2 py-1.5 font-medium">제3자 제공</td>
+                  <td className="px-2 py-1.5">PM 업체(처리 목적 한정), 관할 행정기관</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-gray-500 leading-relaxed">
+              귀하는 개인정보 수집·이용에 동의를 거부할 권리가 있으나, 거부 시 신고 서비스 이용이 불가합니다.
+            </p>
+          </section>
+
+          <section>
+            <h4 className="font-semibold text-gray-800 mb-2">2. 위치정보 수집·이용 동의</h4>
+            <table className="w-full border border-gray-200 rounded text-xs">
+              <tbody>
+                <tr className="border-b border-gray-200">
+                  <td className="bg-gray-50 px-2 py-1.5 font-medium w-24">수집 항목</td>
+                  <td className="px-2 py-1.5">GPS 위치 좌표 (위도·경도)</td>
+                </tr>
+                <tr className="border-b border-gray-200">
+                  <td className="bg-gray-50 px-2 py-1.5 font-medium">수집 목적</td>
+                  <td className="px-2 py-1.5">무단방치 PM 위치 확인 및 현장 출동</td>
+                </tr>
+                <tr className="border-b border-gray-200">
+                  <td className="bg-gray-50 px-2 py-1.5 font-medium">보유 기간</td>
+                  <td className="px-2 py-1.5">신고 처리 완료 후 1년</td>
+                </tr>
+                <tr>
+                  <td className="bg-gray-50 px-2 py-1.5 font-medium">제3자 제공</td>
+                  <td className="px-2 py-1.5">PM 업체(수거 목적), 관할 행정기관</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-gray-500 leading-relaxed">
+              위치정보는 신고된 PM의 위치 확인 목적으로만 사용되며, 그 외 용도로는 활용되지 않습니다.
+              귀하는 위치정보 제공에 동의를 거부할 권리가 있으나, 거부 시 신고 서비스 이용이 불가합니다.
+            </p>
+          </section>
+
+          <section className="bg-blue-50 rounded-lg px-3 py-2.5">
+            <p className="text-blue-700 leading-relaxed">
+              본 서비스는 구미시 공유 개인형 이동장치(PM) 무단방치 신고·관리를 위해 운영됩니다.
+              수집된 정보는 「개인정보 보호법」 및 「위치정보의 보호 및 이용 등에 관한 법률」에 따라 보호됩니다.
+            </p>
+          </section>
+        </div>
+        <div className="px-5 py-4 border-t">
+          <button
+            onClick={onClose}
+            className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-blue-700"
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Company {
   id: string;
   name: string;
@@ -28,6 +112,7 @@ export default function ReportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [reportId, setReportId] = useState("");
   const [error, setError] = useState("");
+  const [showTerms, setShowTerms] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -134,6 +219,7 @@ export default function ReportPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-md overflow-hidden">
         {/* 헤더 */}
         <div className="bg-blue-600 text-white px-6 py-4">
@@ -161,10 +247,17 @@ export default function ReportPage() {
                   type="checkbox"
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-0.5"
+                  className="mt-0.5 flex-shrink-0"
                 />
                 <span>
-                  개인정보 수집·이용 및 위치정보 제공에 동의합니다.
+                  개인정보 수집·이용 및 위치정보 제공에 동의합니다.{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowTerms(true)}
+                    className="text-blue-500 underline text-xs"
+                  >
+                    약관 보기
+                  </button>
                   <br />
                   <span className="text-xs text-gray-400">미동의 시 신고 불가</span>
                 </span>
