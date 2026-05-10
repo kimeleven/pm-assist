@@ -21,6 +21,15 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+@layer base {
+  /* 입력 필드 텍스트 색상 명시 — 브라우저 기본값(회색)이 body color 상속을 무시하는 경우 방지 */
+  input,
+  select,
+  textarea {
+    color: #111827; /* gray-900 */
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
