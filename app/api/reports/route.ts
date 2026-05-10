@@ -67,11 +67,25 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { reporterPhone, qrCode, companyId, violationType, locationLat, locationLng, locationAddr, photoUrl } = body;
+  const { reporterPhone, qrCode, companyId, violationType, locationLat, locationLng, locationAddr, photoUrl, photoUrls } = body;
 
-  if (!reporterPhone || !companyId || !violationType || !locationLat || !locationLng || !photoUrl) {
+  // photoUrls (배열, 신규) 또는 photoUrl (문자열, 구형) 모두 허용
+  const resolvedPhotoUrls: string[] = Array.isArray(photoUrls) && photoUrls.length > 0
+    ? photoUrls.slice(0, 3)
+    : photoUrl
+    ? [photoUrl]
+    : [];
+
+  if (!reporterPhone || !companyId || !violationType || !locationLat || !locationLng || resolvedPhotoUrls.length === 0) {
     return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 400 });
   }
+
+  // 사진 수 제한 (최대 3장)
+  if (resolvedPhotoUrls.length > 3) {
+    return NextResponse.json({ error: "사진은 최대 3장까지 첨부 가능합니다." }, { status: 400 });
+  }
+
+  const storedPhotoUrl = JSON.stringify(resolvedPhotoUrls);
 
   // 1인 1일 신고 제한 (SFR-003)
   const todayStart = new Date();
@@ -100,7 +114,7 @@ export async function POST(req: NextRequest) {
       locationLat,
       locationLng,
       locationAddr,
-      photoUrl,
+      photoUrl: storedPhotoUrl,
       gracePeriodEnd,
     },
   });

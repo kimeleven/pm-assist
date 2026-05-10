@@ -37,7 +37,7 @@ export default function ReportDetailPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [actionNote, setActionNote] = useState("");
-  const [photoLarge, setPhotoLarge] = useState(false);
+  const [photoLarge, setPhotoLarge] = useState<number | null>(null);
 
   useEffect(() => {
     fetch(`/api/reports/${id}`)
@@ -110,25 +110,46 @@ export default function ReportDetailPage() {
               <h2 className="text-sm font-semibold text-gray-700">신고 사진</h2>
             </div>
             <div className="p-4">
-              {report.photoUrl ? (
-                <div className="relative">
-                  <img
-                    src={report.photoUrl}
-                    alt="신고 사진"
-                    className="w-full rounded-lg cursor-zoom-in object-cover"
-                    style={{ maxHeight: photoLarge ? "none" : "240px" }}
-                    onClick={() => setPhotoLarge(!photoLarge)}
-                  />
-                  <button
-                    onClick={() => setPhotoLarge(!photoLarge)}
-                    className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-md hover:bg-black/70"
-                  >
-                    {photoLarge ? "축소" : "크게 보기"}
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center text-gray-400 py-8 text-sm">사진 없음</div>
-              )}
+              {(() => {
+                // JSON 배열 또는 단일 URL 모두 지원
+                let urls: string[] = [];
+                if (report.photoUrl) {
+                  try {
+                    const parsed = JSON.parse(report.photoUrl);
+                    urls = Array.isArray(parsed) ? parsed : [report.photoUrl];
+                  } catch {
+                    urls = [report.photoUrl];
+                  }
+                }
+                return urls.length > 0 ? (
+                  <div className="space-y-3">
+                    {urls.map((url, idx) => (
+                      <div key={idx} className="relative">
+                        <img
+                          src={url}
+                          alt={`신고 사진 ${idx + 1}`}
+                          className="w-full rounded-lg cursor-zoom-in object-cover"
+                          style={{ maxHeight: photoLarge === idx ? "none" : "200px" }}
+                          onClick={() => setPhotoLarge(photoLarge === idx ? null : idx)}
+                        />
+                        <button
+                          onClick={() => setPhotoLarge(photoLarge === idx ? null : idx)}
+                          className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-md hover:bg-black/70"
+                        >
+                          {photoLarge === idx ? "축소" : "크게 보기"}
+                        </button>
+                        {urls.length > 1 && (
+                          <span className="absolute top-2 left-2 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded-md">
+                            {idx + 1}/{urls.length}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 py-8 text-sm">사진 없음</div>
+                );
+              })()}
             </div>
           </div>
 
