@@ -1,38 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
-declare global {
-  interface Window {
-    kakao: {
-      maps: {
-        load: (cb: () => void) => void;
-        Map: new (container: HTMLElement, opts: object) => KakaoMapInstance;
-        LatLng: new (lat: number, lng: number) => object;
-        Marker: new (opts: object) => KakaoMarker;
-        InfoWindow: new (opts: object) => KakaoInfoWindow;
-        event: { addListener: (target: object, type: string, handler: () => void) => void };
-        MarkerImage: new (src: string, size: object, opts?: object) => object;
-        Size: new (w: number, h: number) => object;
-        Point: new (x: number, y: number) => object;
-      };
-    };
-  }
-}
-
-interface KakaoMapInstance {
-  setCenter: (latlng: object) => void;
-}
-
-interface KakaoMarker {
-  setMap: (map: KakaoMapInstance | null) => void;
-  getPosition: () => object;
-}
-
-interface KakaoInfoWindow {
-  open: (map: KakaoMapInstance, marker: KakaoMarker) => void;
-  close: () => void;
-}
+import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 export interface MapMarker {
   id: string;
@@ -51,92 +22,62 @@ interface Props {
 
 const GUMI_CENTER = { lat: 36.1195, lng: 128.3441 };
 
+function makeIcon(isOverGrace: boolean) {
+  const color = isOverGrace ? "#ef4444" : "#22c55e";
+  const svg = encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+      <path d="M14 0C6.268 0 0 6.268 0 14c0 9.8 14 22 14 22S28 23.8 28 14C28 6.268 21.732 0 14 0z" fill="${color}"/>
+      <circle cx="14" cy="14" r="6" fill="white"/>
+    </svg>
+  `);
+  return L.divIcon({
+    html: `<img src="data:image/svg+xml,${svg}" width="28" height="36" />`,
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -36],
+    className: "",
+  });
+}
+
+function RecenterMap({ center }: { center: { lat: number; lng: number } }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([center.lat, center.lng]);
+  }, [center.lat, center.lng, map]);
+  return null;
+}
+
 export default function KakaoMap({ markers, onMarkerClick, center }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<KakaoMapInstance | null>(null);
-  const markersRef = useRef<KakaoMarker[]>([]);
+  const mapCenter = center ?? GUMI_CENTER;
 
-  useEffect(() => {
-    const appKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY;
-    if (!appKey || appKey === "your-kakao-javascript-app-key") return;
-
-    const script = document.createElement("script");
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
-    script.async = true;
-    script.onload = () => {
-      window.kakao.maps.load(() => {
-        if (!containerRef.current) return;
-        const { lat, lng } = center ?? GUMI_CENTER;
-        const map = new window.kakao.maps.Map(containerRef.current, {
-          center: new window.kakao.maps.LatLng(lat, lng),
-          level: 5,
-        });
-        mapRef.current = map;
-        renderMarkers(map);
-      });
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (mapRef.current) renderMarkers(mapRef.current);
-  }, [markers]);
-
-  function renderMarkers(map: KakaoMapInstance) {
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
-
-    markers.forEach((m) => {
-      const pos = new window.kakao.maps.LatLng(m.lat, m.lng);
-      const color = m.isOverGrace ? "red" : "green";
-      const markerImg = new window.kakao.maps.MarkerImage(
-        `https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_${color}.png`,
-        new window.kakao.maps.Size(31, 35),
-        { offset: new window.kakao.maps.Point(15, 35) }
-      );
-      const marker = new window.kakao.maps.Marker({ position: pos, image: markerImg, map });
-      const infoWindow = new window.kakao.maps.InfoWindow({
-        content: `<div style="padding:8px;font-size:12px;max-width:180px"><b>${m.label}</b><br/>${m.detail}</div>`,
-      });
-
-      window.kakao.maps.event.addListener(marker, "click", () => {
-        infoWindow.open(map, marker);
-        onMarkerClick?.(m.id);
-      });
-
-      markersRef.current.push(marker);
-    });
-  }
-
-  const appKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY;
-  const isKeySet = appKey && appKey !== "your-kakao-javascript-app-key";
-
-  if (!isKeySet) {
-    return (
-      <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center text-gray-400 text-sm gap-2">
-        <span className="text-3xl">🗺️</span>
-        <p>지도를 표시하려면 Kakao Maps API 키가 필요합니다.</p>
-        <p className="text-xs">.env 파일에 NEXT_PUBLIC_KAKAO_APP_KEY를 설정하세요.</p>
-        <div className="mt-4 space-y-1 text-left w-64">
-          {markers.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => onMarkerClick?.(m.id)}
-              className={`w-full text-left text-xs px-3 py-1.5 rounded border ${
-                m.isOverGrace ? "border-red-300 bg-red-50 text-red-700" : "border-green-300 bg-green-50 text-green-700"
-              }`}
-            >
-              {m.isOverGrace ? "🔴" : "🟢"} {m.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return <div ref={containerRef} className="w-full h-full" />;
+  return (
+    <MapContainer
+      center={[mapCenter.lat, mapCenter.lng]}
+      zoom={13}
+      style={{ width: "100%", height: "100%" }}
+      scrollWheelZoom={true}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <RecenterMap center={mapCenter} />
+      {markers.map((m) => (
+        <Marker
+          key={m.id}
+          position={[m.lat, m.lng]}
+          icon={makeIcon(m.isOverGrace)}
+          eventHandlers={{ click: () => onMarkerClick?.(m.id) }}
+        >
+          <Popup>
+            <div style={{ fontSize: 12, maxWidth: 180 }}>
+              <b>{m.label}</b>
+              <br />
+              {m.detail}
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </MapContainer>
+  );
 }
