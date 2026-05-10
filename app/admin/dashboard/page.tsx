@@ -29,14 +29,28 @@ interface SelectedReport {
   device?: { model: string };
 }
 
+interface Company {
+  id: string;
+  name: string;
+}
+
 export default function AdminDashboardPage() {
   const [reports, setReports] = useState<MapReport[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyFilter, setCompanyFilter] = useState("");
   const [selected, setSelected] = useState<SelectedReport | null>(null);
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchReports = useCallback(async () => {
-    const res = await fetch("/api/reports-map");
+  useEffect(() => {
+    fetch("/api/companies")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setCompanies(data));
+  }, []);
+
+  const fetchReports = useCallback(async (companyId?: string) => {
+    const params = companyId ? `?companyId=${companyId}` : "";
+    const res = await fetch(`/api/reports-map${params}`);
     if (res.ok) {
       const data = await res.json();
       setReports(data);
@@ -45,10 +59,10 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchReports();
-    const interval = setInterval(fetchReports, 30000);
+    fetchReports(companyFilter || undefined);
+    const interval = setInterval(() => fetchReports(companyFilter || undefined), 30000);
     return () => clearInterval(interval);
-  }, [fetchReports]);
+  }, [fetchReports, companyFilter]);
 
   const markers: MapMarker[] = reports.map((r) => ({
     id: r.id,
@@ -73,7 +87,7 @@ export default function AdminDashboardPage() {
       body: JSON.stringify({ actionResult }),
     });
     setSelected(null);
-    await fetchReports();
+    await fetchReports(companyFilter || undefined);
     setProcessing(false);
   }
 
@@ -83,7 +97,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col h-screen">
       {/* 상단 상태 바 */}
-      <div className="bg-white border-b px-6 py-3 flex items-center gap-6">
+      <div className="bg-white border-b px-6 py-3 flex items-center gap-6 flex-wrap">
         <h1 className="text-base font-bold text-gray-800">지도 모니터링</h1>
         <div className="flex gap-4 text-sm">
           <span className="flex items-center gap-1">
@@ -95,8 +109,19 @@ export default function AdminDashboardPage() {
             유예중 <strong>{activeCount}</strong>건
           </span>
         </div>
+        {/* 업체 필터 */}
+        <select
+          value={companyFilter}
+          onChange={(e) => { setCompanyFilter(e.target.value); setSelected(null); }}
+          className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+        >
+          <option value="">전체 업체</option>
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
         <button
-          onClick={fetchReports}
+          onClick={() => fetchReports(companyFilter || undefined)}
           className="ml-auto text-xs text-blue-600 border border-blue-400 rounded px-3 py-1 hover:bg-blue-50"
         >
           새로고침

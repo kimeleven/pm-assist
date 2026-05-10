@@ -15,10 +15,14 @@ export async function GET(req: NextRequest) {
     data: { status: "GRACE" },
   }).catch(() => {});
 
+  const { searchParams } = new URL(req.url);
+  const companyId = searchParams.get("companyId");
+
   const where: Record<string, unknown> = {
     status: { in: ["RECEIVED", "GRACE"] },
   };
   if (session.role === "COMPANY") where.companyId = session.companyId;
+  if (companyId && session.role === "ADMIN") where.companyId = companyId;
 
   const reports = await prisma.report.findMany({
     where,

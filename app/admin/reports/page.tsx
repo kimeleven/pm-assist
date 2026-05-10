@@ -17,6 +17,11 @@ interface Report {
   device?: { model: string; qrCode: string };
 }
 
+interface Company {
+  id: string;
+  name: string;
+}
+
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "전체" },
   { value: "RECEIVED", label: "접수" },
@@ -34,21 +39,32 @@ const ACTION_RESULTS: { value: "FIXED" | "TOWED" | "NOT_FOUND"; label: string; c
 
 export default function AdminReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
   const [selected, setSelected] = useState<Report | null>(null);
   const [processing, setProcessing] = useState(false);
   const [actionNote, setActionNote] = useState("");
 
-  function fetchReports(filter: string) {
-    const url = filter ? `/api/reports?status=${filter}` : "/api/reports";
+  useEffect(() => {
+    fetch("/api/companies")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setCompanies(data));
+  }, []);
+
+  function fetchReports(status: string, companyId: string) {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (companyId) params.set("companyId", companyId);
+    const url = params.toString() ? `/api/reports?${params}` : "/api/reports";
     setLoading(true);
     fetch(url)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => { setReports(data); setLoading(false); });
   }
 
-  useEffect(() => { fetchReports(statusFilter); }, [statusFilter]);
+  useEffect(() => { fetchReports(statusFilter, companyFilter); }, [statusFilter, companyFilter]);
 
   async function handleAction(actionResult: "FIXED" | "TOWED" | "NOT_FOUND") {
     if (!selected) return;
@@ -60,7 +76,7 @@ export default function AdminReportsPage() {
     });
     setSelected(null);
     setActionNote("");
-    fetchReports(statusFilter);
+    fetchReports(statusFilter, companyFilter);
     setProcessing(false);
   }
 
@@ -70,22 +86,36 @@ export default function AdminReportsPage() {
     <div className="p-6 flex gap-6 h-full">
       {/* 목록 영역 */}
       <div className="flex-1">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <h1 className="text-xl font-bold text-gray-800">신고 현황 관리</h1>
-          <div className="flex gap-2 flex-wrap">
-            {STATUS_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setStatusFilter(opt.value)}
-                className={`px-3 py-1.5 text-xs rounded-full border font-medium transition-colors ${
-                  statusFilter === opt.value
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "border-gray-300 text-gray-600 hover:border-blue-400"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* 업체 필터 */}
+            <select
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value)}
+              className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            >
+              <option value="">전체 업체</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {/* 상태 필터 */}
+            <div className="flex gap-2 flex-wrap">
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={`px-3 py-1.5 text-xs rounded-full border font-medium transition-colors ${
+                    statusFilter === opt.value
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "border-gray-300 text-gray-600 hover:border-blue-400"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
