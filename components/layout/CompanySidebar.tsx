@@ -22,7 +22,7 @@ export default function CompanySidebar() {
     <aside className="w-56 min-h-screen bg-gray-900 text-white flex flex-col">
       <div className="p-4 border-b border-gray-700">
         <div className="text-lg font-bold">🛴 PM업체 포털</div>
-        <div className="text-xs text-gray-400 mt-0.5">구미시 공유PM 관리</div>
+        <div className="text-xs text-gray-400 mt-0.5">인천광역시 공유PM 관리</div>
       </div>
 
       <nav className="flex-1 py-4">

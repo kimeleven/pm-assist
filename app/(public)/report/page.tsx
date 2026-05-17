@@ -75,7 +75,7 @@ function TermsModal({ onClose }: { onClose: () => void }) {
 
           <section className="bg-blue-50 rounded-lg px-3 py-2.5">
             <p className="text-blue-700 leading-relaxed">
-              본 서비스는 구미시 공유 개인형 이동장치(PM) 무단방치 신고·관리를 위해 운영됩니다.
+              본 서비스는 인천광역시 공유 개인형 이동장치(PM) 무단방치 신고·관리를 위해 운영됩니다.
               수집된 정보는 「개인정보 보호법」 및 「위치정보의 보호 및 이용 등에 관한 법률」에 따라 보호됩니다.
             </p>
           </section>

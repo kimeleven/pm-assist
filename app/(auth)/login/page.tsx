@@ -38,7 +38,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">🛴</div>
           <h1 className="text-xl font-bold text-gray-800">공유PM 신고관리시스템</h1>
-          <p className="text-sm text-gray-500 mt-1">구미시</p>
+          <p className="text-sm text-gray-500 mt-1">인천광역시</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

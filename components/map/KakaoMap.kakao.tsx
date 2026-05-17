@@ -49,7 +49,7 @@ interface Props {
   center?: { lat: number; lng: number };
 }
 
-const GUMI_CENTER = { lat: 36.1195, lng: 128.3441 };
+const INCHEON_CENTER = { lat: 37.4563, lng: 126.7052 };
 
 export default function KakaoMap({ markers, onMarkerClick, center }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,7 +66,7 @@ export default function KakaoMap({ markers, onMarkerClick, center }: Props) {
     script.onload = () => {
       window.kakao.maps.load(() => {
         if (!containerRef.current) return;
-        const { lat, lng } = center ?? GUMI_CENTER;
+        const { lat, lng } = center ?? INCHEON_CENTER;
         const map = new window.kakao.maps.Map(containerRef.current, {
           center: new window.kakao.maps.LatLng(lat, lng),
           level: 5,

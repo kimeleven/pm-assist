@@ -20,7 +20,7 @@ interface Props {
   center?: { lat: number; lng: number };
 }
 
-const GUMI_CENTER = { lat: 36.1195, lng: 128.3441 };
+const INCHEON_CENTER = { lat: 37.4563, lng: 126.7052 };
 
 function makeIcon(isOverGrace: boolean) {
   const color = isOverGrace ? "#ef4444" : "#22c55e";
@@ -48,7 +48,7 @@ function RecenterMap({ center }: { center: { lat: number; lng: number } }) {
 }
 
 export default function KakaoMap({ markers, onMarkerClick, center }: Props) {
-  const mapCenter = center ?? GUMI_CENTER;
+  const mapCenter = center ?? INCHEON_CENTER;
 
   return (
     <MapContainer

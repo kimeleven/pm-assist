@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-lea
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const GUMI_CENTER = { lat: 36.1195, lng: 128.3441 };
+const INCHEON_CENTER = { lat: 37.4563, lng: 126.7052 };
 
 const PIN_ICON = L.divIcon({
   html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
@@ -50,7 +50,7 @@ function RecenterOnLocation({ location }: { location: { lat: number; lng: number
 }
 
 export default function LocationPicker({ location, onSelect }: Props) {
-  const center = location ?? GUMI_CENTER;
+  const center = location ?? INCHEON_CENTER;
 
   return (
     <MapContainer
