@@ -13,9 +13,9 @@ async function main() {
 
   // PM업체 3개 생성
   const [kickgoing, lime, deer] = await Promise.all([
-    prisma.company.create({ data: { name: "킥고잉", contact: "070-1111-2222", address: "경북 구미시 신평동 1" } }),
-    prisma.company.create({ data: { name: "라임", contact: "070-3333-4444", address: "경북 구미시 원평동 5" } }),
-    prisma.company.create({ data: { name: "디어", contact: "070-5555-6666", address: "경북 구미시 도량동 12" } }),
+    prisma.company.create({ data: { name: "킥고잉", contact: "070-1111-2222", address: "인천광역시 남동구 구월동 1" } }),
+    prisma.company.create({ data: { name: "라임", contact: "070-3333-4444", address: "인천광역시 연수구 송도동 5" } }),
+    prisma.company.create({ data: { name: "디어", contact: "070-5555-6666", address: "인천광역시 부평구 부평동 12" } }),
   ]);
 
   // 이동장치 등록
@@ -41,7 +41,7 @@ async function main() {
     prisma.user.create({ data: { username: "deer", passwordHash: companyHash, role: "COMPANY", companyId: deer.id } }),
   ]);
 
-  // 구미시 중심부 좌표 기준 신고 20건
+  // 인천광역시 중심부 좌표 기준 신고 20건
   const violations = ["차도 위 방치", "보도 위 방치", "횡단보도 위 방치", "점자블록 위 방치", "기타"];
   const companies = [kickgoing, lime, deer];
   const baseTime = new Date();
@@ -59,8 +59,8 @@ async function main() {
       companyId: company.id,
       deviceId: device.companyId === company.id ? device.id : null,
       violationType: violations[i % violations.length],
-      locationLat: 36.1195 + (Math.random() - 0.5) * 0.04,
-      locationLng: 128.3441 + (Math.random() - 0.5) * 0.04,
+      locationLat: 37.4563 + (Math.random() - 0.5) * 0.04,
+      locationLng: 126.7052 + (Math.random() - 0.5) * 0.04,
       photoUrl: "https://via.placeholder.com/400x300?text=PM+신고+사진",
       gracePeriodEnd,
       reportedAt,
