@@ -1,10 +1,12 @@
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "@neondatabase/serverless";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { PrismaNeonHttp } = require("@prisma/adapter-neon");
+const { PrismaNeon } = require("@prisma/adapter-neon");
 
 function createPrismaClient() {
-  // Prisma 7 + @prisma/adapter-neon 7: 어댑터가 connection string 직접 받음
-  const adapter = new PrismaNeonHttp(process.env.DATABASE_URL!);
+  // PrismaNeon(WebSocket) 사용 — HTTP 모드는 트랜잭션 미지원
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+  const adapter = new PrismaNeon(pool);
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
