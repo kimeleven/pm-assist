@@ -17,12 +17,19 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const companyId = searchParams.get("companyId");
+  const metropolitan = searchParams.get("metropolitan");
+  const district = searchParams.get("district");
 
   const where: Record<string, unknown> = {
     status: { in: ["RECEIVED", "GRACE"] },
   };
   if (session.role === "COMPANY") where.companyId = session.companyId;
   if (companyId && session.role === "ADMIN") where.companyId = companyId;
+
+  const AND: Array<Record<string, unknown>> = [];
+  if (metropolitan) AND.push({ locationAddr: { contains: metropolitan } });
+  if (district) AND.push({ locationAddr: { contains: district } });
+  if (AND.length > 0) where.AND = AND;
 
   const reports = await prisma.report.findMany({
     where,

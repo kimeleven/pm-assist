@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { isOverGrace, STATUS_LABELS } from "@/lib/utils";
+import { METROPOLITAN_AREAS, DISTRICTS, type MetropolitanArea } from "@/lib/regions";
 import type { MapMarker } from "@/components/map/KakaoMap";
 import { ReportStatus } from "@prisma/client";
 
@@ -38,6 +39,8 @@ export default function AdminDashboardPage() {
   const [reports, setReports] = useState<MapReport[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyFilter, setCompanyFilter] = useState("");
+  const [metropolitanFilter, setMetropolitanFilter] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
   const [selected, setSelected] = useState<SelectedReport | null>(null);
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -48,9 +51,13 @@ export default function AdminDashboardPage() {
       .then((data) => setCompanies(data));
   }, []);
 
-  const fetchReports = useCallback(async (companyId?: string) => {
-    const params = companyId ? `?companyId=${companyId}` : "";
-    const res = await fetch(`/api/reports-map${params}`);
+  const fetchReports = useCallback(async (companyId?: string, metropolitan?: string, district?: string) => {
+    const params = new URLSearchParams();
+    if (companyId) params.set("companyId", companyId);
+    if (metropolitan) params.set("metropolitan", metropolitan);
+    if (district) params.set("district", district);
+    const qs = params.toString();
+    const res = await fetch(`/api/reports-map${qs ? `?${qs}` : ""}`);
     if (res.ok) {
       const data = await res.json();
       setReports(data);
@@ -59,10 +66,13 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchReports(companyFilter || undefined);
-    const interval = setInterval(() => fetchReports(companyFilter || undefined), 30000);
+    fetchReports(companyFilter || undefined, metropolitanFilter || undefined, districtFilter || undefined);
+    const interval = setInterval(
+      () => fetchReports(companyFilter || undefined, metropolitanFilter || undefined, districtFilter || undefined),
+      30000
+    );
     return () => clearInterval(interval);
-  }, [fetchReports, companyFilter]);
+  }, [fetchReports, companyFilter, metropolitanFilter, districtFilter]);
 
   const markers: MapMarker[] = reports.map((r) => ({
     id: r.id,
@@ -78,6 +88,12 @@ export default function AdminDashboardPage() {
     if (r) setSelected(r);
   }
 
+  function handleMetroChange(val: string) {
+    setMetropolitanFilter(val);
+    setDistrictFilter("");
+    setSelected(null);
+  }
+
   async function handleAction(actionResult: "FIXED" | "TOWED" | "NOT_FOUND") {
     if (!selected) return;
     setProcessing(true);
@@ -87,7 +103,7 @@ export default function AdminDashboardPage() {
       body: JSON.stringify({ actionResult }),
     });
     setSelected(null);
-    await fetchReports(companyFilter || undefined);
+    await fetchReports(companyFilter || undefined, metropolitanFilter || undefined, districtFilter || undefined);
     setProcessing(false);
   }
 
@@ -120,8 +136,31 @@ export default function AdminDashboardPage() {
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
+        {/* 광역지자체 필터 */}
+        <select
+          value={metropolitanFilter}
+          onChange={(e) => handleMetroChange(e.target.value)}
+          className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+        >
+          <option value="">전체 지역</option>
+          {METROPOLITAN_AREAS.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        {/* 기초지자체 필터 — 광역 선택 시만 활성 */}
+        <select
+          value={districtFilter}
+          onChange={(e) => { setDistrictFilter(e.target.value); setSelected(null); }}
+          disabled={!metropolitanFilter}
+          className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <option value="">전체 시군구</option>
+          {metropolitanFilter && DISTRICTS[metropolitanFilter as MetropolitanArea]?.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
         <button
-          onClick={() => fetchReports(companyFilter || undefined)}
+          onClick={() => fetchReports(companyFilter || undefined, metropolitanFilter || undefined, districtFilter || undefined)}
           className="ml-auto text-xs text-blue-600 border border-blue-400 rounded px-3 py-1 hover:bg-blue-50"
         >
           새로고침

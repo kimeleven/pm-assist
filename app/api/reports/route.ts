@@ -25,6 +25,8 @@ export async function GET(req: NextRequest) {
   }
   const status = searchParams.get("status") as ReportStatus | null;
   const companyId = searchParams.get("companyId");
+  const metropolitan = searchParams.get("metropolitan");
+  const district = searchParams.get("district");
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
@@ -45,6 +47,12 @@ export async function GET(req: NextRequest) {
   if (session.role === "COMPANY") where.companyId = session.companyId;
   if (companyId && session.role === "ADMIN") where.companyId = companyId;
   if (status) where.status = status;
+
+  const AND: Array<Record<string, unknown>> = [];
+  if (metropolitan) AND.push({ locationAddr: { contains: metropolitan } });
+  if (district) AND.push({ locationAddr: { contains: district } });
+  if (AND.length > 0) where.AND = AND;
+
   if (from || to) {
     where.reportedAt = {
       ...(from ? { gte: new Date(from) } : {}),

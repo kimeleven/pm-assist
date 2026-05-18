@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { STATUS_LABELS, STATUS_COLORS } from "@/lib/utils";
+import { METROPOLITAN_AREAS, DISTRICTS, type MetropolitanArea } from "@/lib/regions";
 import { ReportStatus } from "@prisma/client";
 
 interface Report {
@@ -43,6 +44,8 @@ export default function AdminReportsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
   const [companyFilter, setCompanyFilter] = useState("");
+  const [metropolitanFilter, setMetropolitanFilter] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
   const [selected, setSelected] = useState<Report | null>(null);
   const [processing, setProcessing] = useState(false);
   const [actionNote, setActionNote] = useState("");
@@ -53,10 +56,12 @@ export default function AdminReportsPage() {
       .then((data) => setCompanies(data));
   }, []);
 
-  function fetchReports(status: string, companyId: string) {
+  function fetchReports(status: string, companyId: string, metropolitan: string, district: string) {
     const params = new URLSearchParams();
     if (status) params.set("status", status);
     if (companyId) params.set("companyId", companyId);
+    if (metropolitan) params.set("metropolitan", metropolitan);
+    if (district) params.set("district", district);
     const url = params.toString() ? `/api/reports?${params}` : "/api/reports";
     setLoading(true);
     fetch(url)
@@ -64,7 +69,12 @@ export default function AdminReportsPage() {
       .then((data) => { setReports(data); setLoading(false); });
   }
 
-  useEffect(() => { fetchReports(statusFilter, companyFilter); }, [statusFilter, companyFilter]);
+  function handleMetroChange(val: string) {
+    setMetropolitanFilter(val);
+    setDistrictFilter("");
+  }
+
+  useEffect(() => { fetchReports(statusFilter, companyFilter, metropolitanFilter, districtFilter); }, [statusFilter, companyFilter, metropolitanFilter, districtFilter]);
 
   async function handleAction(actionResult: "FIXED" | "TOWED" | "NOT_FOUND") {
     if (!selected) return;
@@ -76,7 +86,7 @@ export default function AdminReportsPage() {
     });
     setSelected(null);
     setActionNote("");
-    fetchReports(statusFilter, companyFilter);
+    fetchReports(statusFilter, companyFilter, metropolitanFilter, districtFilter);
     setProcessing(false);
   }
 
@@ -98,6 +108,29 @@ export default function AdminReportsPage() {
               <option value="">전체 업체</option>
               {companies.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {/* 광역지자체 필터 */}
+            <select
+              value={metropolitanFilter}
+              onChange={(e) => handleMetroChange(e.target.value)}
+              className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            >
+              <option value="">전체 지역</option>
+              {METROPOLITAN_AREAS.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            {/* 기초지자체 필터 — 광역 선택 시만 활성 */}
+            <select
+              value={districtFilter}
+              onChange={(e) => setDistrictFilter(e.target.value)}
+              disabled={!metropolitanFilter}
+              className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <option value="">전체 시군구</option>
+              {metropolitanFilter && DISTRICTS[metropolitanFilter as MetropolitanArea]?.map((d) => (
+                <option key={d} value={d}>{d}</option>
               ))}
             </select>
             {/* 상태 필터 */}
